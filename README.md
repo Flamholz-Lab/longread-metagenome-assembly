@@ -6,7 +6,7 @@ This repository contains a snakemake pipeline that takes a .fastq file as input 
 
 To run, you’ll need three files in your working directory or path:
 
-`/assembly_snakefile.sh` \
+`/assembly_snakefile` \
 `/assembly_snakefile_config.yaml` \
 `/assembly_snakefile_run.sh ` 
 
