@@ -3,8 +3,6 @@
 #SBATCH --gpus=1
 #SBATCH --partition=hpc_a10_a
 #SBATCH --time 24:00:00
-#SBATCH --mail-type=END
-#SBATCH --mail-user=jmcdonald@rockefeller.edu
 ###################
 
 echo Starting at `date`
