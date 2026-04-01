@@ -1,0 +1,323 @@
+import os
+import glob
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+configfile: "snakefile_config.yaml"
+
+READS       = config["reads"]
+FILTER      = config["filter"]
+QUALITY     = config["quality"]
+KRAKEN_DB   = config["kraken_db"]
+CHECKM2_DB   = config["checkm2_db"]
+MEDAKA_MODEL = config["medaka_model"]
+THREADS     = config.get("threads", 8)
+HOME     = config["home"]
+REFERENCE     = config["reference_genomes"]
+
+# ── Target rule ───────────────────────────────────────────────────────────────
+rule all:
+    input:
+        "medaka_output/consensus.fasta",
+        "busco_output",
+        "kraken2_output/kraken2_done.txt",
+        "relative_abundance.tsv"
+
+# ── Chopper pre-processing ────────────────────────────────────────────
+rule chopper:
+    input:
+        reads = READS
+    output:
+        "chopper_out/filtered.fastq"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/chopper"
+    threads: THREADS
+    params:
+        quality = QUALITY,
+        filter  = FILTER
+    shell:
+        """
+        chopper \
+          -q {params.quality} \
+          -l {params.filter} \
+          -i {input.reads} > {output}
+        """
+# Chopper is a filtering step,
+# -q sets the quality threshold, -l sets the length threshold of sequences to keep. I usually use Q20 and 1000 bp.
+
+# ── 1. Run assembly ────────────────────────────────────────────
+rule metaflye:
+    input:
+        reads = "chopper_out/filtered.fastq"
+    output:
+        "metaflye_out/assembly.fasta"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/flye" 
+    threads: THREADS
+    shell:
+        """
+        flye \
+        --nano-hq {input.reads} \
+        --meta \
+        --out-dir metaflye_out
+        """
+#MetaFlye is the gold standard for metagenome assembly from long-reads. This is the more computationally intense and time consuming step.
+
+# ── 2. Polish assembly with Medaka ────────────────────────────────────────────
+rule medaka_polish:
+    input:
+        reads = "chopper_out/filtered.fastq",
+        assembly = "metaflye_out/assembly.fasta"
+    output:
+        "medaka_output/consensus.fasta"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/medaka" 
+    threads: THREADS
+    params:
+        model = MEDAKA_MODEL
+    shell:
+        """
+        medaka_consensus \
+            -i {input.reads} \
+            -d {input.assembly} \
+            -o medaka_output/ \
+            -t {threads} \
+            -m {params.model}
+        """
+#Polishing step recommended by Nanopore
+
+# ── 3. Map reads to polished assembly 
+rule map_reads:
+    input:
+        assembly = "medaka_output/consensus.fasta",
+        reads    = "chopper_out/filtered.fastq"
+    output:
+        bam = "aligned.bam",
+        bai = "aligned.bam.bai"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/alignment" 
+    threads: THREADS
+    shell:
+        """
+        minimap2 -ax map-ont -t {threads} {input.assembly} {input.reads} | samtools sort -o {output.bam}
+        samtools index {output.bam}
+        """
+#This step aligns the raw reads to the assembly you generated. It's used for downstream binning steps.
+
+# ── 4. Generate depth file 
+rule generate_depth:
+    input:
+        bam = "aligned.bam"
+    output:
+        depth    = "depth.txt",
+        coverage = "coverage.txt"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/metabat2" 
+    shell:
+        """
+        jgi_summarize_bam_contig_depths --outputDepth {output.depth} {input.bam}
+
+        cut -f1,3 {output.depth} | tail -n +2 > {output.coverage}
+        """
+#These files tell you how many times each contig was fully covered in your sequencing reads.
+
+# ── 5. Binning 
+rule metabat2:
+    input:
+        consensus = "medaka_output/consensus.fasta",
+        depth    = "depth.txt"
+    output:
+        directory("bins/metabat2")
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/metabat2" 
+    shell:
+        """
+        metabat2 -i {input.consensus} \
+        -a {input.depth} \
+        -o {output}/metabat2 \
+        -m 1500
+        """
+
+rule comebin: ##needs sh testing
+    input:
+        consensus = "medaka_output/consensus.fasta",
+        coverage = "coverage.txt",
+        bam_path = "./"
+    output:
+        directory("bins/comebin")
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/comebin" 
+    shell:
+        """
+        cd /lustre/fs4/home/jmcdonald/miniconda3/envs/comebin
+
+        run_comebin.sh -a {HOME}/{input.consensus} \
+        -p {HOME}/{input.bam_path} \
+        -o {HOME}/{output} \
+        -l 2000 \
+        -t 8
+        """
+
+
+rule semibin: 
+    input:
+        consensus = "medaka_output/consensus.fasta",
+        bam      = "aligned.bam"
+    output:
+        directory("bins/semibin/output")
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/SemiBin" 
+    threads: THREADS
+    shell:
+        """
+        SemiBin2 single_easy_bin \
+        --sequencing-type=long_read \
+        -i {input.consensus} \
+        -b {input.bam} \
+        -o {output}
+
+        gunzip {output}/output_bins/*fa.gz
+        """
+#Current pipelines often use multiple binning algorithm and then converge on the highest-qualty bins from all binners.
+#Here, we use MetaBat2 (fast but less sensitive) and SemiBin and Comebin (slower and more thorough)
+
+# ── 6. Convert bins to scaffold-to-bin format
+rule scaffold_to_bin:
+    input:
+        metabat2 = "bins/metabat2",
+        comebin  = "bins/comebin",
+        semibin = "bins/semibin/output"
+    output:
+        metabat2 = "metabat2_cut.tsv",
+        comebin  = "comebin.tsv",
+        semibin = "semibin.tsv"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/dastool" 
+    shell:
+        """
+        /lustre/fs4/home/jmcdonald/miniconda3/envs/dastool/bin/Fasta_to_Contig2Bin.sh -i {input.metabat2} -e fa > metabat2.tsv
+        cut -f2,3 --complement metabat2.tsv > {output.metabat2}
+
+        /lustre/fs4/home/jmcdonald/miniconda3/envs/dastool/bin/Fasta_to_Contig2Bin.sh -i {input.comebin}/comebin_res/comebin_res_bins  -e fa > {output.comebin}
+
+        /lustre/fs4/home/jmcdonald/miniconda3/envs/dastool/bin/Fasta_to_Contig2Bin.sh -i {input.semibin}/output_bins -e fa > {output.semibin}
+        """
+#Processing step to converge bins
+
+
+# ── 7. DAS_Tool bin reconciliation
+rule dastool:
+    input:
+        assembly = "medaka_output/consensus.fasta",
+        metabat2 = "metabat2_cut.tsv",
+        comebin  = "comebin.tsv",
+        semibin  = "semibin.tsv"
+    output:
+        directory("dastool_output")
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/dastool"
+    threads: THREADS
+    shell:
+        """
+        DAS_Tool \
+            -i {input.metabat2},{input.comebin},{input.semibin} \
+            -c {input.assembly} \
+            -o {output} \
+            --write_bins \
+            -t {threads}
+
+        mv dastool_output_DASTool_bins dastool_output
+        mv dastool_output_* dastool_output
+        mv dastool_output.seqlength dastool_output
+        """
+#Bin convergence step. The bins output here should correspond to individual genomes.
+
+# ── 8. BUSCO quality assessment 
+rule busco:
+    input:
+        bins = "dastool_output/"
+    output:
+        directory("busco_output")
+    threads: THREADS
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/busco" 
+    shell:
+        """
+        busco \
+            -i {input.bins}/*.fa \
+            -m genome \
+            -o {output} \
+            -l bacteria_odb10 \
+            --auto-lineage-prok \
+            --cpu {threads}
+        """
+#One of two quality assessments. BUSCO looks at marker genes and other metrics for completeness.
+
+
+# ── 9. MAG assessment with checkM2
+rule checkM2:
+    input:
+        bins = "dastool_output/"
+    output:
+        directory("checkm2_output")
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/checkm"
+    threads: THREADS
+    shell:
+        """
+        checkm2 \
+            predict \
+            -x fa \
+            --input {input.bins} \
+            --output {output} \
+            --database_path {CHECKM2_DB}
+        """
+#Second of two quality assessments. CheckM2 uses a pretrained ML model to determine completeness of assembly.
+
+# ── 10. Kraken2 taxonomic classification 
+rule kraken2:
+    input:
+        bins = "dastool_output/"
+    output:
+        report = "kraken2_output/kraken2_done.txt"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/kraken2_env"
+    threads: THREADS
+    shell:
+        """
+        mkdir -p kraken2_output
+        for bin in {input.bins}/*.fa; do
+            name=$(basename $bin .fa)
+            kraken2 \
+                --db {KRAKEN_DB} \
+                --threads {threads} \
+                --output kraken2_output/${{name}}.kraken \
+                --report kraken2_output/${{name}}.report \
+                --use-names \
+                $bin
+        done
+        touch {output.report}
+        """
+#Kraken2 assigns taxonomy to each converged bin. This step tells you what species your genome is most closely related to. 
+
+# ── 11. Relative abundance with CoverM
+rule coverm:
+    input:
+        reads = "chopper_out/filtered.fastq",
+        bins  = glob.glob(REFERENCE + "/*.fa")
+    output:
+        "relative_abundance.tsv"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/coverm"
+    threads: THREADS
+    shell:
+        """
+        coverm genome \
+            --single {input.reads} \
+            --min-covered-fraction=0 \
+            --genome-fasta-files {input.bins} \
+            --output-file {output} \
+            -m length mean reads_per_base relative_abundance covered_fraction \
+            -t {threads}
+        """
+#Optional step, might not be neccesary for your needs. This step maps a reference genome (or your assembled genomes if you'd like) to your sequencing reads
+#to get a relative abundance of the starting sample. CoverM accounts for genome size and coverage.
