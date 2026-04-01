@@ -19,24 +19,24 @@ sbatch assembly_snakefile_run.sh
 The entire pipeline took about 2 hours using 16 threads for a ~5 GB ONT .fastq file containing genomes from 4 strains. Expect time to scale accordingly.
 
 ## Outputs
-Converged bins -- .fa files are your genomes!
+Converged bins -- .fa files are your genomes!: \
 dastool_output/
 
-Taxonomic analysis for converged bins -- the most closely related species to your genomes
+Taxonomic analysis for converged bins -- the most closely related species to your genomes: \
 kraken2_output/
 
-Quality and completeness analysis of dastool-converged bins:
-busco_output/batch_summary.txt
+Quality and completeness analysis of dastool-converged bins: \
+busco_output/batch_summary.txt \
 checkm2_output/
 
-Calculated depth and coverage from polished MetaFlye assembly:
-depth.txt
+Calculated depth and coverage from polished MetaFlye assembly: \
+depth.txt \
 coverage.txt
 
-Bins from different binners:
-comebin.tsv
-metabat2_cut.tsv 
+Bins from different binners: \
+comebin.tsv \
+metabat2_cut.tsv \
 semibin.tsv  
 
-Relative abundance by coverM, uses filtered.fastq against reference genomes:
+Relative abundance by coverM, uses filtered.fastq against reference genomes: \
 relative_abundance.tsv
