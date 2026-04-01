@@ -15,8 +15,8 @@ source /ru-auth/local/home/jmcdonald/miniconda3/etc/profile.d/conda.sh
 conda activate /ru-auth/local/home/jmcdonald/miniconda3/envs/snakemake
 
 snakemake \
-    --snakefile snakefile \
-    --configfile ./snakefile_config.yaml \
+    --snakefile assembly_snakefile \
+    --configfile ./assembly_snakefile_config.yaml \
     --executor slurm \
     --jobs 10 \
     --default-resources slurm_partition=hpc_a10_a mem_mb=16000 runtime="24h" \
