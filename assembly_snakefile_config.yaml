@@ -1,13 +1,12 @@
 # ── Required ──────────────────────────────────────────────────────────────────
-reads: "/lustre/fs4/flam_lab/scratch/jmcdonald/260316_assembly_make_2/244KYH_1_rerun_4_strains_even_1.fastq"
-quality: "15"
-filter: "1000"
-medaka_model: "r1041_e82_400bps_sup_v5.0.0"
-path_to_comebin: "/lustre/fs4/home/jmcdonald/miniconda3/envs/comebin/bin/COMEBin/run_comebin.sh"
-kraken_db: "/lustre/fs4/flam_lab/scratch/jmcdonald/kraken_db"
-checkm2_db: "/ru-auth/local/home/jmcdonald/scratch/checkm2_db/CheckM2_database/uniref100.KO.1.dmnd"
-home: "/lustre/fs4/flam_lab/scratch/jmcdonald/260316_assembly_make_2"
-reference_genomes: "/lustre/fs4/flam_lab/scratch/jmcdonald/260316_assembly_make_2/ref_genomes"
+reads: "./reads.fastq" #your raw sequencing reads
+quality: "20" #Q score you want to filter by -- typically Q20 (1% error)
+filter: "1000" #read length to filter by
+medaka_model: "r1041_e82_400bps_sup_v5.0.0" #reflects nanopre chemistry for assembly polishing
+path_to_comebin: "/lustre/fs4/home/jmcdonald/miniconda3/envs/comebin/bin/COMEBin/run_comebin.sh" #binner path
+kraken_db: "/lustre/fs4/flam_lab/scratch/jmcdonald/kraken_db" #taxonomy database path
+checkm2_db: "/ru-auth/local/home/jmcdonald/scratch/checkm2_db/CheckM2_database/uniref100.KO.1.dmnd" #checkM2 quality databse path
+home: "./" #your home path
+reference_genomes: "./ref_genomes" #reference genomes for coverM if using
 # ── Optional ──────────────────────────────────────────────────────────────────
 threads: 8
-l
