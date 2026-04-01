@@ -5,9 +5,9 @@ Contains a snakemake pipeline that takes a .fastq file as input (e.g. your raw s
 
 To run, you’ll need three files in your working directory or path:
 
-/assembly_snakefile.sh
-/assembly_snakefile_config.yaml
-/assembly_snakefile_run.sh
+/assembly_snakefile.sh \
+/assembly_snakefile_config.yaml \
+/assembly_snakefile_run.sh \
 
 First edit the config file to reflect your .fastq file and other desired parameters. The actual snakefile (/assembly_snakefile.sh) should not need to be edited. Note that the snakefile utilizes conda environments that I’ve created under my profile in HPC storage. TBD if others in the lab can access those. If not, you will want to make your own conda environments that have the right packages.
 
