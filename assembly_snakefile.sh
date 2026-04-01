@@ -2,7 +2,7 @@ import os
 import glob
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-configfile: "snakefile_config.yaml"
+configfile: "assembly_snakefile_config.yaml"
 
 READS       = config["reads"]
 FILTER      = config["filter"]
