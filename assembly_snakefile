@@ -21,6 +21,7 @@ rule all:
         "medaka_output/consensus.fasta",
         "busco_output",
         "kraken2_output/kraken2_done.txt"
+        "relative_abundance.tsv"
 
 # ── Nanoplot quality assessment ────────────────────────────────────────────
 rule nanoplot:
