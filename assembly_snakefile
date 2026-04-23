@@ -269,7 +269,7 @@ rule busco:
     shell:
         """
         busco \
-            -i {input.bins}/*.fa \
+            -i {input.bins} \
             -m genome \
             -o {output} \
             -l bacteria_odb10 \
