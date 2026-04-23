@@ -19,8 +19,7 @@ rule all:
     input:
         "medaka_output/consensus.fasta",
         "busco_output",
-        "kraken2_output/kraken2_done.txt",
-        "relative_abundance.tsv"
+        "kraken2_output/kraken2_done.txt"
 
 # ── Chopper pre-processing ────────────────────────────────────────────
 rule chopper:
@@ -304,7 +303,7 @@ rule kraken2:
 rule coverm:
     input:
         reads = "chopper_out/filtered.fastq",
-        bins  = glob.glob(REFERENCE + "/*.fa")
+        bins  = "dastool_output/"
     output:
         "relative_abundance.tsv"
     conda:
@@ -315,10 +314,11 @@ rule coverm:
         coverm genome \
             --single {input.reads} \
             --min-covered-fraction=0 \
-            --genome-fasta-files {input.bins} \
+            --genome-fasta-files {input.bins}/*.fa \
             --output-file {output} \
             -m length mean reads_per_base relative_abundance covered_fraction \
             -t {threads}
         """
-#Optional step, might not be neccesary for your needs. This step maps a reference genome (or your assembled genomes if you'd like) to your sequencing reads
+#Optional step, might not be neccesary for your needs. This step maps assembled genomes (or your reference genomes if you'd like) to your sequencing reads
 #to get a relative abundance of the starting sample. CoverM accounts for genome size and coverage.
+#for reference genomes, use: bins  = glob.glob(REFERENCE + "/*.fa")
