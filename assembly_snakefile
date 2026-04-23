@@ -17,9 +17,28 @@ REFERENCE     = config["reference_genomes"]
 # ── Target rule ───────────────────────────────────────────────────────────────
 rule all:
     input:
+        "nanoplot_out/NanoPlot-report.html"
         "medaka_output/consensus.fasta",
         "busco_output",
         "kraken2_output/kraken2_done.txt"
+
+# ── Nanoplot quality assessment ────────────────────────────────────────────
+rule nanoplot:
+    input:
+        reads = READS
+    output:
+        "nanoplot_out/NanoPlot-report.html"
+    conda:
+        "/ru-auth/local/home/jmcdonald/miniconda3/envs/nanoplot"
+    threads: THREADS
+    shell:
+        """
+        NanoPlot \
+            --fastq {input.reads} \
+            -t {threads} \
+            -o nanoplot_out
+        """
+# Quality scores and N50 for your sequencing data
 
 # ── Chopper pre-processing ────────────────────────────────────────────
 rule chopper:
