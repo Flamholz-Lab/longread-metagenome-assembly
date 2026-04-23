@@ -58,6 +58,7 @@ rule metaflye:
         flye \
         --nano-hq {input.reads} \
         --meta \
+        -t {threads} \
         --out-dir metaflye_out
         """
 #MetaFlye is the gold standard for metagenome assembly from long-reads. This is the more computationally intense and time consuming step.
