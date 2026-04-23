@@ -19,6 +19,10 @@ To run on the HPC use:
 The entire pipeline took about 2 hours using 16 threads for a ~5 GB ONT .fastq file containing genomes from 4 strains. Expect time to scale accordingly.
 
 ## Outputs
+
+Quality metrics for your raw sequencing data: \
+`nanoplot_out/` 
+
 Converged bins -- .fa files are your genomes!: \
 `dastool_output/` 
 
