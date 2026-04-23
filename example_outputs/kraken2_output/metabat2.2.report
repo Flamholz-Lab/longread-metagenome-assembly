@@ -1,0 +1,11 @@
+100.00	2	0	R	1	root
+100.00	2	0	R1	131567	  cellular organisms
+100.00	2	0	D	2	    Bacteria
+100.00	2	0	K	3379134	      Pseudomonadati
+100.00	2	0	P	1224	        Pseudomonadota
+100.00	2	0	C	28216	          Betaproteobacteria
+100.00	2	0	O	80840	            Burkholderiales
+100.00	2	0	F	119060	              Burkholderiaceae
+100.00	2	0	G	106589	                Cupriavidus
+100.00	2	0	S	106590	                  Cupriavidus necator
+100.00	2	2	S1	1042878	                    Cupriavidus necator N-1
