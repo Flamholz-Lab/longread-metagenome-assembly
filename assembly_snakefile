@@ -57,7 +57,8 @@ rule chopper:
         chopper \
           -q {params.quality} \
           -l {params.filter} \
-          -i {input.reads} > {output}
+          -i {input.reads} > {output} \
+          -t {threads}
         """
 # Chopper is a filtering step,
 # -q sets the quality threshold, -l sets the length threshold of sequences to keep. I usually use Q20 and 1000 bp.
@@ -117,7 +118,10 @@ rule map_reads:
     threads: THREADS
     shell:
         """
-        minimap2 -ax map-ont -t {threads} {input.assembly} {input.reads} | samtools sort -o {output.bam}
+        minimap2 \
+        -ax map-ont \
+        -t {threads} \
+        {input.assembly} {input.reads} | samtools sort -o {output.bam} \
         samtools index {output.bam}
         """
 #This step aligns the raw reads to the assembly you generated. It's used for downstream binning steps.
@@ -153,6 +157,7 @@ rule metabat2:
         metabat2 -i {input.consensus} \
         -a {input.depth} \
         -o {output}/metabat2 \
+        -t {threads} \
         -m 1500
         """
 
@@ -173,7 +178,7 @@ rule comebin: ##needs sh testing
         -p {HOME}/{input.bam_path} \
         -o {HOME}/{output} \
         -l 2000 \
-        -t 8
+        -t {threads}
         """
 
 
@@ -192,6 +197,7 @@ rule semibin:
         --sequencing-type=long_read \
         -i {input.consensus} \
         -b {input.bam} \
+        -t {threads} \
         -o {output}
 
         gunzip {output}/output_bins/*fa.gz
@@ -288,6 +294,7 @@ rule checkM2:
             -x fa \
             --input {input.bins} \
             --output {output} \
+            --threads {threads} \
             --database_path {CHECKM2_DB}
         """
 #Second of two quality assessments. CheckM2 uses a pretrained ML model to determine completeness of assembly.
@@ -316,7 +323,8 @@ rule kraken2:
         done
         touch {output.report}
         """
-#Kraken2 assigns taxonomy to each converged bin. This step tells you what species your genome is most closely related to. 
+#Kraken2 assigns taxonomy to each converged bin. This step tells you what species your genome is most closely related to. Note that the default database (which can be changed in config)
+#is an small 8 GB database with limited species. LArger ones can (and maybe should?) be used.
 
 # ── 11. Relative abundance with CoverM
 rule coverm:
