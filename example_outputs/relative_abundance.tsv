@@ -1,0 +1,5 @@
+Genome	filtered.fastq Length	filtered.fastq Mean	filtered.fastq Reads per base	filtered.fastq Relative Abundance (%)	filtered.fastq Covered Fraction
+unmapped	NA	NA	NA	3.1925857	NA
+0	6541490	81.46434	0.02129362	28.41111	1
+metabat2.2	6961690	171.30287	0.045170642	59.742764	1
+SemiBin_1	4629042	24.812645	0.007812847	8.653539	0.9993418
