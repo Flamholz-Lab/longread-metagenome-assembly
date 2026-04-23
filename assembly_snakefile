@@ -17,7 +17,7 @@ REFERENCE     = config["reference_genomes"]
 # ── Target rule ───────────────────────────────────────────────────────────────
 rule all:
     input:
-        "nanoplot_out/NanoPlot-report.html"
+        "nanoplot_out/NanoPlot-report.html",
         "medaka_output/consensus.fasta",
         "busco_output",
         "kraken2_output/kraken2_done.txt"
