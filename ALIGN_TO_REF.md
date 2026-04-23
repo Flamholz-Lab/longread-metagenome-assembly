@@ -1,7 +1,7 @@
 # Notes for aligning your assembled genome to a reference
 
 ## There are a few tools for this. Here are the ones I've tested:
-ec_reference.fasta is my reference genome and 
+ec_reference.fasta is my reference genome and ec_meta_assemble.fa is what I assembled from ONT sequencing
 
 ### 1. Mummer4
 Mummer can be installed via conda. I used:
